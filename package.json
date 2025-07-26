@@ -7,12 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start:server": "nodemon server.js"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
     "daisyui": "^5.0.47",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
     "lucide-react": "^0.525.0",
+    "nodemon": "^3.1.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.7.1",

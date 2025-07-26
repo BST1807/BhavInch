@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
-import { Wallet, ArrowLeftRight, PieChart, Settings, Menu, X } from 'lucide-react';
+import { Wallet } from 'lucide-react';
+import useSupportedChains from '../hooks/useSupportedChains';
+
 const WalletComponent = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+
+  // ✅ Use the custom hook
+  const { chains, loading } = useSupportedChains();
 
   const handleConnect = () => {
     setIsConnecting(true);
     // Simulate connection process
     setTimeout(() => {
       setIsConnecting(false);
-      // For demo purposes, don't actually connect
+      setIsConnected(true); // Simulate connected
     }, 1500);
   };
 
@@ -17,7 +22,7 @@ const WalletComponent = () => {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Wallet Connection</h2>
-        
+
         {/* Connection Status */}
         <div className="mb-6 p-4 bg-gray-50 rounded-xl">
           <div className="flex items-center space-x-3">
@@ -27,12 +32,14 @@ const WalletComponent = () => {
             </span>
           </div>
           <div className="text-sm text-gray-600 mt-1">
-            {isConnected ? 'Your wallet is connected and ready to use' : 'Connect your wallet to start trading'}
+            {isConnected
+              ? 'Your wallet is connected and ready to use'
+              : 'Connect your wallet to start trading'}
           </div>
         </div>
 
         {/* Connect Wallet Button */}
-        <button 
+        <button
           onClick={handleConnect}
           disabled={isConnecting || isConnected}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-xl transition-colors mb-6"
@@ -45,7 +52,10 @@ const WalletComponent = () => {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Supported Wallets</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {['MetaMask', 'WalletConnect', 'Coinbase Wallet', 'Trust Wallet'].map((wallet) => (
-              <div key={wallet} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer">
+              <div
+                key={wallet}
+                className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer"
+              >
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
                   <Wallet className="w-4 h-4 text-white" />
                 </div>
@@ -55,14 +65,22 @@ const WalletComponent = () => {
           </div>
         </div>
 
-        {/* Network Info */}
+        {/* Supported Networks */}
         <div className="mt-6 p-4 bg-blue-50 rounded-xl">
           <h4 className="font-medium text-blue-900 mb-2">Supported Networks</h4>
-          <div className="text-sm text-blue-700 space-y-1">
-            {Object.values(CONFIG.SUPPORTED_CHAINS).map((chain) => (
-              <div key={chain}>• {chain}</div>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-blue-700 text-sm">Loading supported networks...</p>
+          ) : (
+            <div className="text-sm text-blue-700 space-y-1">
+              {chains.length > 0 ? (
+                chains.map((chain) => (
+                  <div key={chain.id}>• {chain.title || chain.name || `Chain ID: ${chain.id}`}</div>
+                ))
+              ) : (
+                <p>No supported networks found.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

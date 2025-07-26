@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header'; // <-- Put your Header in its own file if not already
-import SwapComponent from './components/SwapComponent'; // same for others
-import PortfolioComponent from './components/Portfolio';
-import WalletComponent from './components/WalletComponent';
+import SwapComponent from './pages/SwapComponent'; // same for others
+import PortfolioComponent from './pages/Portfolio';
+import WalletComponent from './pages/WalletComponent';
+import SearchTokenComponent from './pages/SearchTokenComponent';
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
             <Route path="/swap" element={<SwapComponent />} />
             <Route path="/portfolio" element={<PortfolioComponent />} />
             <Route path="/wallet" element={<WalletComponent />} />
+            <Route path="/search" element={<SearchTokenComponent />} />
           </Routes>
         </main>
 
