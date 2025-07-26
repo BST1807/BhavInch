@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import axios from 'axios'; // ✅ using axios now!
+import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,34 +11,71 @@ const PORT = 3001;
 
 app.use(cors());
 
+// Supported chains map (optional, purely for logging or validation)
+const CHAINS = {
+  1: 'Ethereum',
+  56: 'BNB Chain',
+  137: 'Polygon',
+  10: 'Optimism',
+  42161: 'Arbitrum',
+  43114: 'Avalanche'
+};
+
+// 🔍 SEARCH endpoint
 app.get('/api/search-token', async (req, res) => {
   const query = req.query.query;
-  console.log('Incoming query:', query);
-  console.log('API key:', process.env.ONEINCH_API_KEY);
+  const chain = req.query.chainId || 1;
+  console.log(`[SEARCH] Chain: ${chain} | Query: ${query}`);
 
   try {
     const response = await axios.get(
-      `https://api.1inch.dev/token/v1.2/1/search`,
+      `https://api.1inch.dev/token/v1.2/${chain}/search`,
       {
         params: { query },
         headers: {
-          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`, // ✅ CORRECT
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
         },
       }
     );
 
-    console.log('1inch response:', response.data);
     res.json(response.data);
-
   } catch (err) {
-    console.error('Proxy error:', err.response?.data || err.message);
+    console.error('Search error:', err.response?.data || err.message);
     res.status(500).json({
-      error: 'Something went wrong',
+      error: 'Search failed',
       details: err.response?.data || err.message,
     });
   }
 });
 
+// 🔍 ALL TOKENS endpoint
+app.get('/api/all-tokens', async (req, res) => {
+  const { chainId } = req.query;
+
+  if (!chainId) {
+    return res.status(400).json({ error: 'chainId is required' });
+  }
+
+  console.log(`Fetching all tokens for chain ${chainId}...`);
+
+  try {
+    const response = await axios.get(`https://api.1inch.dev/token/v1.2/${chainId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+      },
+    });
+
+    // Response is { [address]: tokenObj }
+    // Wrap it:
+    res.json({ tokens: response.data });
+
+  } catch (err) {
+    console.error('Error fetching all tokens:', err);
+    res.status(500).json({ error: 'Failed to fetch all tokens', details: err.message });
+  }
+});
+
+
 app.listen(PORT, () => {
-  console.log(`Proxy server listening on http://localhost:${PORT}`);
+  console.log(`Proxy server running on http://localhost:${PORT}`);
 });

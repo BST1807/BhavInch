@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Wallet, ArrowLeftRight, PieChart, Settings, Menu, X } from 'lucide-react';
+import { Wallet, ArrowLeftRight, PieChart, Settings, Menu, X, Search } from 'lucide-react';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -10,6 +10,7 @@ const Header = () => {
     { name: 'Swap', path: '/swap', icon: ArrowLeftRight },
     { name: 'Portfolio', path: '/portfolio', icon: PieChart },
     { name: 'Wallet', path: '/wallet', icon: Wallet },
+    { name: 'Search Token', path: '/search', icon: Search }, // ✅ Added Search!
   ];
 
   const isActive = (path) => location.pathname === path;
