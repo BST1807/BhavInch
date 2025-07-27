@@ -1,28 +1,13 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { sepolia, polygonMumbai, avalancheFuji } from 'wagmi/chains';
+import { polygonAmoy } from '../lib/wagmi.config'; // ✅ reuse!
 
 export default function useSupportedChains() {
-  const [chains, setChains] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const chains = [
+    { id: sepolia.id, name: sepolia.name },
+    { id: polygonMumbai.id, name: polygonMumbai.name },
+    { id: avalancheFuji.id, name: avalancheFuji.name },
+    { id: polygonAmoy.id, name: polygonAmoy.name },
+  ];
 
-  useEffect(() => {
-    const fetchChains = async () => {
-      try {
-        const response = await axios.get('https://api.1inch.dev/networks/v1', {
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_ONEINCH_API_KEY}`,
-          },
-        });
-        setChains(response.data);
-      } catch (err) {
-        console.error('Error fetching supported chains:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChains();
-  }, []);
-
-  return { chains, loading };
+  return { chains, loading: false };
 }

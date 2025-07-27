@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Wallet, ArrowLeftRight, PieChart, Settings, Menu, X, Search } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit'; // ✅ Add RainbowKit ConnectButton
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -10,7 +11,7 @@ const Header = () => {
     { name: 'Swap', path: '/swap', icon: ArrowLeftRight },
     { name: 'Portfolio', path: '/portfolio', icon: PieChart },
     { name: 'Wallet', path: '/wallet', icon: Wallet },
-    { name: 'Search Token', path: '/search', icon: Search }, // ✅ Added Search!
+    { name: 'Search Token', path: '/search', icon: Search },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -49,6 +50,7 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center space-x-4">
+            <ConnectButton /> {/* ✅ Wallet connect button here! */}
             <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
               <Settings className="w-5 h-5" />
             </button>

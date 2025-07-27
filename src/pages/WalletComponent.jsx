@@ -1,22 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Wallet } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import useSupportedChains from '../hooks/useSupportedChains';
 
 const WalletComponent = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const { address, isConnected, isConnecting } = useAccount();
 
-  // ✅ Use the custom hook
   const { chains, loading } = useSupportedChains();
-
-  const handleConnect = () => {
-    setIsConnecting(true);
-    // Simulate connection process
-    setTimeout(() => {
-      setIsConnecting(false);
-      setIsConnected(true); // Simulate connected
-    }, 1500);
-  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -28,26 +18,19 @@ const WalletComponent = () => {
           <div className="flex items-center space-x-3">
             <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
             <span className="text-gray-900 font-medium">
-              {isConnected ? 'Connected' : 'Not Connected'}
+              {isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Not Connected'}
             </span>
           </div>
           <div className="text-sm text-gray-600 mt-1">
             {isConnected
-              ? 'Your wallet is connected and ready to use'
-              : 'Connect your wallet to start trading'}
+              ? `Connected wallet address: ${address}`
+              : 'Connect your wallet using the Connect button above.'}
           </div>
         </div>
 
-        {/* Connect Wallet Button */}
-        <button
-          onClick={handleConnect}
-          disabled={isConnecting || isConnected}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-xl transition-colors mb-6"
-        >
-          {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Connect Wallet'}
-        </button>
+        {/* Remove custom Connect button — handled by RainbowKit in Header */}
 
-        {/* Supported Wallets */}
+        {/* Supported Wallets (can keep for info) */}
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">Supported Wallets</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
