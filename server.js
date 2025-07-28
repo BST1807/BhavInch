@@ -148,6 +148,27 @@ app.get('/api/quote', async (req, res) => {
 });
 
 
+// ✅ GAS PRICE endpoint
+app.get('/api/gas-price', async (req, res) => {
+  const { chainId } = req.query;
+  const cid = chainId || 1;
+
+  console.log(`[GAS PRICE] Chain: ${cid}`);
+
+  try {
+    const response = await axios.get(`https://api.1inch.dev/gas-price/v1.4/${cid}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+      },
+    });
+
+    res.json(response.data);
+  } catch (err) {
+    console.error('Gas price error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch gas price', details: err.message });
+  }
+});
+
 
 
 // 🔍 ALL TOKENS endpoint
