@@ -48,6 +48,108 @@ app.get('/api/search-token', async (req, res) => {
   }
 });
 
+// ✅ BALANCES + ALLOWANCES endpoint
+app.get('/api/balances', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[BALANCES] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/balance/v1.2/${chainId}/balances/${wallet}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+  } catch (err) {
+    console.error('Balances API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch balances',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
+// ✅ PORTFOLIO Current Value endpoint
+app.get('/api/portfolio/value', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[PORTFOLIO VALUE] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/current_value`,
+      {
+        params: {
+          addresses: wallet,
+          chain_id: chainId,
+        },
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+  } catch (err) {
+    console.error('Portfolio Value API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch portfolio value',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
+// ✅ QUOTE endpoint
+app.get('/api/quote', async (req, res) => {
+  const { chainId, fromTokenAddress, toTokenAddress, amount } = req.query;
+
+  if (!chainId || !fromTokenAddress || !toTokenAddress || !amount) {
+    return res.status(400).json({ error: 'Missing required params' });
+  }
+
+  console.log(`[QUOTE] Chain: ${chainId} | From: ${fromTokenAddress} | To: ${toTokenAddress} | Amount: ${amount}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/swap/v5.2/${chainId}/quote`,
+      {
+        params: {
+          fromTokenAddress,
+          toTokenAddress,
+          amount
+        },
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+    console.log('1inch raw quote:', response.data);
+  } catch (err) {
+    console.error('Quote error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch quote', details: err.response?.data || err.message });
+  }
+});
+
+
+
+
 // 🔍 ALL TOKENS endpoint
 app.get('/api/all-tokens', async (req, res) => {
   const { chainId } = req.query;
