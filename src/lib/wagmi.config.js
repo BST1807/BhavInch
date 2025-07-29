@@ -1,5 +1,5 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { sepolia, polygonMumbai, avalancheFuji } from 'wagmi/chains';
+import { sepolia, polygonMumbai, avalancheFuji ,mainnet ,polygon} from 'wagmi/chains';
 import { defineChain } from 'viem';
 
 // ✅ Define Polygon Amoy Testnet manually
@@ -25,5 +25,5 @@ export const polygonAmoy = defineChain({
 export const config = getDefaultConfig({
   appName: 'BhavInch',
   projectId: '78c6569c263ca3ceb987de960b32f366',
-  chains: [sepolia, polygonMumbai, avalancheFuji, polygonAmoy], // ✅ Added here
+  chains: [sepolia, polygonMumbai, avalancheFuji, polygonAmoy, mainnet, polygon], // ✅ Added here
 });

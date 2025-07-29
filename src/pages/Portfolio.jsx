@@ -1,12 +1,19 @@
-import React from 'react';
-import usePortfolioBalances from '../hooks/usePortfolioBalances';
+import React from "react";
+import { useAccount, useChainId } from "wagmi";
+import usePortfolioBalances from "../hooks/usePortfolioBalances";
 
 const Portfolio = () => {
-  const chainId = 11155111; // Sepolia Testnet
-  const walletAddress = '0x11B14F72aBff0077A92F4E9e80BDd7B5f0F75092'; // ⚡ Replace with your wallet
+  // ✅ 1. Get connected wallet address
+  const { address } = useAccount();
 
+  // ✅ 2. Get connected chainId (wagmi v2+)
+  const chainId = useChainId() || 1;
+  const walletAddress = address;
+
+  // ✅ 4. Call your hook with the dynamic chainId + wallet address
   const { tokens, loading } = usePortfolioBalances(chainId, walletAddress);
 
+  // ✅ 5. Calculate total USD value
   const totalUSD = tokens.reduce(
     (acc, t) => acc + Number(t.balance) * t.usdPrice,
     0
@@ -14,6 +21,7 @@ const Portfolio = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* ✅ Portfolio summary */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Portfolio Overview
@@ -38,6 +46,7 @@ const Portfolio = () => {
         </div>
       </div>
 
+      {/* ✅ Tokens list */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Your Tokens
@@ -45,6 +54,8 @@ const Portfolio = () => {
 
         {loading ? (
           <p>Loading balances...</p>
+        ) : !walletAddress ? (
+          <p className="text-gray-500">Please connect your wallet.</p>
         ) : tokens.length === 0 ? (
           <p className="text-gray-500">No tokens found with balance.</p>
         ) : (
