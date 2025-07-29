@@ -1,92 +1,96 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-export default function usePortfolioBalances(chainId, walletAddress) {
+export default function usePortfolioBalances(chainId, wallet) {
   const [tokens, setTokens] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!walletAddress) return;
-
     const fetchBalances = async () => {
+      if (!chainId || !wallet) return;
+
       setLoading(true);
 
       try {
-        // ✅ 1️⃣ Get balances
-        const balancesRes = await fetch(
-          `http://localhost:3001/api/balances?chainId=${chainId}&wallet=${walletAddress}`
-        );
-        const balancesData = await balancesRes.json();
-        console.log('Raw balancesData:', balancesData);
+        // ✅ 1. Get balances
+        const response = await axios.get("http://localhost:3001/api/balances", {
+          params: { chainId, wallet },
+        });
 
-        const balancesArray = Array.isArray(balancesData)
-          ? balancesData
-          : balancesData.balances || balancesData.tokens || Object.entries(balancesData).map(
-              ([address, balance]) => ({
-                address,
-                balance,
-              })
-            );
+        console.log("Balances API raw response:", response.data);
 
-        // ✅ 2️⃣ Get prices
-        const portfolioRes = await fetch(
-          `http://localhost:3001/api/portfolio/value?chainId=${chainId}&wallet=${walletAddress}`
-        );
-        const portfolioData = await portfolioRes.json();
-        console.log('Raw portfolioData:', portfolioData);
+        const balances = response.data.balances || response.data; // fallback if no `balances` key
 
-        const enriched = balancesArray
-          .filter(t => Number(t.balance) > 0) // keep only positive raw balances
-          .map((t) => {
-            const usdToken = (portfolioData.result || []).find(
-              (p) =>
-                p.address?.toLowerCase?.() === t.token_address?.toLowerCase?.() ||
-                p.address?.toLowerCase?.() === t.address?.toLowerCase?.()
-            );
+        if (!balances || typeof balances !== "object") {
+          console.warn("No balances returned.");
+          setTokens([]);
+          return;
+        }
 
-            const address = t.token_address || t.address;
+        const tokenList = Object.entries(balances)
+          .filter(([_, b]) => Number(b) > 0)
+          .map(([address, balance]) => ({
+            address,
+            balanceRaw: balance,
+          }));
 
-            // ✅ fallback decimals
-            let decimals = t.decimals || usdToken?.decimals;
-            if (!decimals) {
-              // fallback: assume 6 for USDC or 18 for generic ERC20
-              if (address?.toLowerCase() === "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48") {
-                decimals = 6; // USDC
-              } else {
-                decimals = 18; // default ERC20
-              }
+        // ✅ 2. Get all tokens meta
+        const tokensRes = await axios.get("http://localhost:3001/api/all-tokens", {
+          params: { chainId },
+        });
+
+        const allTokens = tokensRes.data.tokens || tokensRes.data;
+
+        // ✅ 3. Enrich with meta + spot price
+        const enriched = await Promise.all(
+          tokenList.map(async (t) => {
+            const tokenMeta = allTokens[t.address] || {};
+            const decimals = tokenMeta.decimals ?? 18;
+            const symbol = tokenMeta.symbol ?? "UNKNOWN";
+            const logoURI = tokenMeta.logoURI ?? "";
+
+            const balanceFormatted = Number(t.balanceRaw) / 10 ** decimals;
+
+            // ✅ Spot price (fixed!)
+            let usdPrice = 0;
+            try {
+              const spotRes = await axios.get("http://localhost:3001/api/spot-price", {
+                params: {
+                  chainId,
+                  tokenAddress: t.address,
+                },
+              });
+
+              // ✅ Extract first value + convert from wei to dollars
+              const raw = Object.values(spotRes.data)[0];
+              usdPrice = Number(raw) / 1e18;
+
+            } catch (err) {
+              console.error(`Spot price error for ${symbol}:`, err.message);
             }
 
-            // ✅ format balance
-            const balance = Number(t.balance) / (10 ** decimals);
-
-            // ✅ fallback USD price if missing
-            const usdPrice = usdToken?.price ?? (
-              address?.toLowerCase() === "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-                ? 1
-                : 0
-            );
-
             return {
-              address,
-              balance,
+              address: t.address,
+              symbol,
               decimals,
-              symbol: t.symbol || usdToken?.symbol || `${address?.slice(0, 6)}...`,
-              logoURI: t.logoURI || usdToken?.logoURI,
-              allowance: t.allowance || 'N/A',
+              logoURI,
+              balance: balanceFormatted.toFixed(6),
               usdPrice,
             };
-          });
+          })
+        );
 
         setTokens(enriched);
       } catch (err) {
-        console.error('Portfolio Balances Error:', err);
+        console.error("Error fetching balances:", err);
+        setTokens([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchBalances();
-  }, [chainId, walletAddress]);
+  }, [chainId, wallet]);
 
   return { tokens, loading };
 }

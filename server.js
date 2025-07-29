@@ -79,6 +79,40 @@ app.get('/api/balances', async (req, res) => {
 });
 
 
+// ✅ SPOT PRICE endpoint
+app.get('/api/spot-price', async (req, res) => {
+  const { chainId, tokenAddress } = req.query;
+
+  if (!chainId || !tokenAddress) {
+    return res.status(400).json({ error: 'chainId and tokenAddress are required' });
+  }
+
+  console.log(`[SPOT PRICE] Chain: ${chainId} | Token: ${tokenAddress}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/price/v1.1/${chainId}/${tokenAddress}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    res.json(response.data);
+    console.log("Spot Price Raw Response:", response.data);
+
+  } catch (err) {
+    console.error('Spot price error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch spot price', details: err.message });
+  }
+
+  
+});
+
+
+
+
 // ✅ PORTFOLIO Current Value endpoint
 app.get('/api/portfolio/value', async (req, res) => {
   const { chainId, wallet } = req.query;
