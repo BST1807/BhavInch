@@ -11,43 +11,6 @@ const PORT = 3001;
 
 app.use(cors());
 
-// Supported chains map (optional, purely for logging or validation)
-const CHAINS = {
-  1: 'Ethereum',
-  56: 'BNB Chain',
-  137: 'Polygon',
-  10: 'Optimism',
-  42161: 'Arbitrum',
-  43114: 'Avalanche'
-};
-
-// 🔍 SEARCH endpoint
-app.get('/api/search-token', async (req, res) => {
-  const query = req.query.query;
-  const chain = req.query.chainId || 1;
-  console.log(`[SEARCH] Chain: ${chain} | Query: ${query}`);
-
-  try {
-    const response = await axios.get(
-      `https://api.1inch.dev/token/v1.2/${chain}/search`,
-      {
-        params: { query },
-        headers: {
-          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-        },
-      }
-    );
-
-    res.json(response.data);
-  } catch (err) {
-    console.error('Search error:', err.response?.data || err.message);
-    res.status(500).json({
-      error: 'Search failed',
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
 // ✅ BALANCES + ALLOWANCES endpoint
 app.get('/api/balances', async (req, res) => {
   const { chainId, wallet } = req.query;
@@ -78,8 +41,7 @@ app.get('/api/balances', async (req, res) => {
   }
 });
 
-
-// ✅ SPOT PRICE endpoint
+// ✅ FIXED SPOT PRICE endpoint
 app.get('/api/spot-price', async (req, res) => {
   const { chainId, tokenAddress } = req.query;
 
@@ -98,114 +60,91 @@ app.get('/api/spot-price', async (req, res) => {
         },
       }
     );
+  
+    const raw = Object.values(response.data)[0];
+    const priceUsd = Number(raw) / 1e18;
 
-    res.json(response.data);
-    console.log("Spot Price Raw Response:", response.data);
+    console.log("Spot Price Raw:", response.data, "| Normalized USD:", priceUsd);
+
+    res.json({ priceUsd });
 
   } catch (err) {
     console.error('Spot price error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to fetch spot price', details: err.message });
   }
-
-  
 });
 
 
-
-
-// ✅ PORTFOLIO Current Value endpoint
-app.get('/api/portfolio/value', async (req, res) => {
-  const { chainId, wallet } = req.query;
-
-  if (!chainId || !wallet) {
-    return res.status(400).json({ error: 'chainId and wallet are required' });
-  }
-
-  console.log(`[PORTFOLIO VALUE] Chain: ${chainId} | Wallet: ${wallet}`);
-
-  try {
-    const response = await axios.get(
-      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/current_value`,
-      {
-        params: {
-          addresses: wallet,
-          chain_id: chainId,
-        },
-        headers: {
-          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-        },
-      }
-    );
-
-    res.json(response.data);
-  } catch (err) {
-    console.error('Portfolio Value API error:', err.response?.data || err.message);
-    res.status(500).json({
-      error: 'Failed to fetch portfolio value',
-      details: err.response?.data || err.message,
-    });
-  }
-});
-
-
-// ✅ QUOTE endpoint
-app.get('/api/quote', async (req, res) => {
-  const { chainId, fromTokenAddress, toTokenAddress, amount } = req.query;
-
-  if (!chainId || !fromTokenAddress || !toTokenAddress || !amount) {
-    return res.status(400).json({ error: 'Missing required params' });
-  }
-
-  console.log(`[QUOTE] Chain: ${chainId} | From: ${fromTokenAddress} | To: ${toTokenAddress} | Amount: ${amount}`);
-
-  try {
-    const response = await axios.get(
-      `https://api.1inch.dev/swap/v5.2/${chainId}/quote`,
-      {
-        params: {
-          fromTokenAddress,
-          toTokenAddress,
-          amount
-        },
-        headers: {
-          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-        },
-      }
-    );
-
-    res.json(response.data);
-    console.log('1inch raw quote:', response.data);
-  } catch (err) {
-    console.error('Quote error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to fetch quote', details: err.response?.data || err.message });
-  }
-});
-
-
-// ✅ GAS PRICE endpoint
+// ✅ GAS PRICE endpoint using 1inch Gas Price API
 app.get('/api/gas-price', async (req, res) => {
   const { chainId } = req.query;
-  const cid = chainId || 1;
 
-  console.log(`[GAS PRICE] Chain: ${cid}`);
+  if (!chainId) {
+    return res.status(400).json({ error: 'chainId is required' });
+  }
+
+  console.log(`[GAS PRICE] Chain: ${chainId}`);
 
   try {
-    const response = await axios.get(`https://api.1inch.dev/gas-price/v1.4/${cid}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-      },
-    });
+    const response = await axios.get(
+      `https://api.1inch.dev/gas-price/v1.4/${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
 
+    // ✅ 1inch returns baseFee, plus low/medium/high/instant
+    // Just send back the whole data — your frontend expects .medium.maxFeePerGas
     res.json(response.data);
+
   } catch (err) {
     console.error('Gas price error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to fetch gas price', details: err.message });
   }
 });
 
+// ✅ QUOTE endpoint
+app.get('/api/quote', async (req, res) => {
+  const { chainId, fromTokenAddress, toTokenAddress, amount } = req.query;
+
+  if (!chainId || !fromTokenAddress || !toTokenAddress || !amount) {
+    return res.status(400).json({
+      error: 'chainId, fromTokenAddress, toTokenAddress, and amount are required'
+    });
+  }
+
+  console.log(`[QUOTE] Chain: ${chainId} | From: ${fromTokenAddress} | To: ${toTokenAddress} | Amount: ${amount}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/swap/v6.0/${chainId}/quote`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+        params: {
+          fromTokenAddress,
+          toTokenAddress,
+          amount,
+        }
+      }
+    );
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error('Quote API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch quote',
+      details: err.response?.data || err.message,
+    });
+  }
+});
 
 
-// 🔍 ALL TOKENS endpoint
+// ✅ ALL TOKENS endpoint
 app.get('/api/all-tokens', async (req, res) => {
   const { chainId } = req.query;
 
@@ -222,8 +161,6 @@ app.get('/api/all-tokens', async (req, res) => {
       },
     });
 
-    // Response is { [address]: tokenObj }
-    // Wrap it:
     res.json({ tokens: response.data });
 
   } catch (err) {
@@ -231,7 +168,6 @@ app.get('/api/all-tokens', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch all tokens', details: err.message });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);

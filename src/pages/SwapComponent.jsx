@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAccount, useChainId } from 'wagmi';
 import { ArrowLeftRight } from 'lucide-react';
 
 const SwapComponent = () => {
@@ -8,51 +9,93 @@ const SwapComponent = () => {
   const [fromToken, setFromToken] = useState(null);
   const [toToken, setToToken] = useState(null);
   const [gasPrice, setGasPrice] = useState(null);
+  const [tokenList, setTokenList] = useState([]); // owned tokens
+  const [allTokenList, setAllTokenList] = useState([]); // all tokens
 
-  const tokenList = [
-    {
-      symbol: 'USDC',
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      decimals: 6
-    },
-    {
-      symbol: 'USDT',
-      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-      decimals: 6
-    },
-    {
-      symbol: 'DAI',
-      address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-      decimals: 18
-    }
-  ];
+  const { address: walletAddress, isConnected } = useAccount();
+  const chainId = useChainId() || 1;
 
-  // Fetch quote whenever inputs change
+  // Fetch balances & tokens
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!walletAddress || !chainId) return;
+
+      try {
+        const balancesRes = await axios.get('http://localhost:3001/api/balances', {
+          params: { chainId, wallet: walletAddress }
+        });
+
+        const balances = balancesRes.data.balances || balancesRes.data;
+
+        const nonZeroTokens = Object.entries(balances)
+          .filter(([address, balance]) => BigInt(balance) > 0n)
+          .map(([address, balance]) => ({ address, balance }));
+
+        const allTokensRes = await axios.get('http://localhost:3001/api/all-tokens', {
+          params: { chainId }
+        });
+
+        const allTokens = allTokensRes.data.tokens;
+
+        const userTokens = nonZeroTokens.map(({ address, balance }) => {
+          const tokenInfo = allTokens[address.toLowerCase()];
+          if (!tokenInfo) return null;
+          return {
+            symbol: tokenInfo.symbol,
+            name: tokenInfo.name,
+            address: tokenInfo.address,
+            decimals: tokenInfo.decimals,
+            balanceRaw: balance
+          };
+        }).filter(Boolean);
+
+        const allTokensArray = Object.values(allTokens).map(token => ({
+          symbol: token.symbol,
+          name: token.name,
+          address: token.address,
+          decimals: token.decimals,
+        }));
+
+        setTokenList(userTokens);
+        setAllTokenList(allTokensArray);
+
+      } catch (err) {
+        console.error('Balances or tokens error:', err.response?.data || err.message);
+      }
+    };
+
+    fetchData();
+  }, [walletAddress, chainId]);
+
+  // Fetch quote
   useEffect(() => {
     const fetchQuote = async () => {
-      if (!fromToken || !toToken) return;
+      if (!fromToken || !toToken || !chainId) return;
       const amt = Number(fromAmount);
       if (!amt || amt <= 0) return;
 
       const amountInWei = BigInt(Math.floor(amt * 10 ** fromToken.decimals)).toString();
-      console.log(`[QUOTE] Chain: 1 | From: ${fromToken.address} | To: ${toToken.address} | Amount: ${amountInWei}`);
 
       try {
         const response = await axios.get('http://localhost:3001/api/quote', {
           params: {
-            chainId: 1,
+            chainId,
             fromTokenAddress: fromToken.address,
             toTokenAddress: toToken.address,
             amount: amountInWei,
           },
         });
 
-        const toAmountRaw = response.data.toAmount || response.data.toTokenAmount;
-        console.log('Raw toAmount:', toAmountRaw);
+        console.log('[QUOTE] Raw:', response.data);
+
+        const toAmountRaw =
+          response.data.dstAmount ||
+          response.data.data?.dstAmount ||
+          response.data.toAmount ||
+          response.data.toTokenAmount;
 
         if (toAmountRaw && toToken) {
           const formatted = Number(toAmountRaw) / 10 ** toToken.decimals;
-          console.log('Formatted:', formatted);
           setToAmount(formatted.toFixed(6));
         } else {
           setToAmount('');
@@ -64,23 +107,23 @@ const SwapComponent = () => {
     };
 
     fetchQuote();
-  }, [fromAmount, fromToken, toToken]);
+  }, [fromAmount, fromToken, toToken, chainId]);
 
-  // Fetch gas price once
+  // Fetch gas price
   useEffect(() => {
     const fetchGasPrice = async () => {
+      if (!chainId) return;
       try {
         const response = await axios.get('http://localhost:3001/api/gas-price', {
-          params: { chainId: 1 }
+          params: { chainId }
         });
-        console.log('Gas price:', response.data);
         setGasPrice(response.data);
       } catch (err) {
         console.error('Gas price error:', err.response?.data || err.message);
       }
     };
     fetchGasPrice();
-  }, []);
+  }, [chainId]);
 
   return (
     <div className="max-w-md mx-auto">
@@ -92,20 +135,24 @@ const SwapComponent = () => {
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex justify-between mb-2">
               <span className="text-sm text-gray-600">From</span>
-              <span className="text-sm text-gray-600">Balance: 0.00</span>
+              <span className="text-sm text-gray-600">
+                Balance: {fromToken ? (Number(fromToken.balanceRaw) / 10 ** fromToken.decimals).toFixed(4) : '0.00'}
+              </span>
             </div>
             <div className="flex items-center space-x-3">
               <select
                 className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
                 value={fromToken?.address || ''}
                 onChange={(e) => {
-                  const selected = tokenList.find(t => t.address === e.target.value);
+                  const selected = tokenList.find(t => t.address.toLowerCase() === e.target.value.toLowerCase());
                   setFromToken(selected);
                 }}
               >
                 <option value="">Select Token</option>
                 {tokenList.map(token => (
-                  <option key={token.address} value={token.address}>{token.symbol}</option>
+                  <option key={token.address} value={token.address}>
+                    {token.symbol} ({token.name})
+                  </option>
                 ))}
               </select>
 
@@ -142,20 +189,22 @@ const SwapComponent = () => {
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex justify-between mb-2">
               <span className="text-sm text-gray-600">To</span>
-              <span className="text-sm text-gray-600">Balance: 0.00</span>
+              <span className="text-sm text-gray-600">Balance: -</span>
             </div>
             <div className="flex items-center space-x-3">
               <select
                 className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
                 value={toToken?.address || ''}
                 onChange={(e) => {
-                  const selected = tokenList.find(t => t.address === e.target.value);
+                  const selected = allTokenList.find(t => t.address.toLowerCase() === e.target.value.toLowerCase());
                   setToToken(selected);
                 }}
               >
                 <option value="">Select Token</option>
-                {tokenList.map(token => (
-                  <option key={token.address} value={token.address}>{token.symbol}</option>
+                {allTokenList.map(token => (
+                  <option key={token.address} value={token.address}>
+                    {token.symbol} ({token.name})
+                  </option>
                 ))}
               </select>
 
@@ -170,15 +219,25 @@ const SwapComponent = () => {
           </div>
         </div>
 
-        <button className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors">
-          Connect Wallet
-        </button>
+        {!isConnected ? (
+          <p className="w-full mt-6 text-center text-gray-600 font-medium">
+            Connect your wallet to start swapping.
+          </p>
+        ) : (
+          <p className="w-full mt-6 text-center text-green-600 font-medium">
+            Wallet Connected
+          </p>
+        )}
 
         <div className="mt-4 p-3 bg-gray-50 rounded-lg">
           <div className="text-sm text-gray-600 space-y-1">
             <div className="flex justify-between">
               <span>Rate</span>
-              <span>{toAmount ? `1 ${fromToken?.symbol} → ${Number(toAmount) / Number(fromAmount)} ${toToken?.symbol}` : '-'}</span>
+              <span>{toAmount && fromAmount ? `1 ${fromToken?.symbol} → ${(Number(toAmount) / Number(fromAmount)).toFixed(6)} ${toToken?.symbol}` : '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Estimated Received</span>
+              <span>{toAmount ? `${toAmount} ${toToken?.symbol}` : '-'}</span>
             </div>
             <div className="flex justify-between">
               <span>Gas Price</span>

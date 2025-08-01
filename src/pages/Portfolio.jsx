@@ -86,7 +86,7 @@ const Portfolio = () => {
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">
-                    ${(Number(token.balance) * token.usdPrice).toFixed(2)}
+                    {(Number(token.balance) * token.usdPrice).toFixed(2)} ETH
                   </div>
                   <div className="text-xs text-gray-600">
                     Balance: {token.balance}

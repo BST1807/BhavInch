@@ -12,14 +12,13 @@ export default function usePortfolioBalances(chainId, wallet) {
       setLoading(true);
 
       try {
-        // ✅ 1. Get balances
         const response = await axios.get("http://localhost:3001/api/balances", {
           params: { chainId, wallet },
         });
 
         console.log("Balances API raw response:", response.data);
 
-        const balances = response.data.balances || response.data; // fallback if no `balances` key
+        const balances = response.data.balances || response.data;
 
         if (!balances || typeof balances !== "object") {
           console.warn("No balances returned.");
@@ -34,14 +33,12 @@ export default function usePortfolioBalances(chainId, wallet) {
             balanceRaw: balance,
           }));
 
-        // ✅ 2. Get all tokens meta
         const tokensRes = await axios.get("http://localhost:3001/api/all-tokens", {
           params: { chainId },
         });
 
         const allTokens = tokensRes.data.tokens || tokensRes.data;
 
-        // ✅ 3. Enrich with meta + spot price
         const enriched = await Promise.all(
           tokenList.map(async (t) => {
             const tokenMeta = allTokens[t.address] || {};
@@ -51,7 +48,6 @@ export default function usePortfolioBalances(chainId, wallet) {
 
             const balanceFormatted = Number(t.balanceRaw) / 10 ** decimals;
 
-            // ✅ Spot price (fixed!)
             let usdPrice = 0;
             try {
               const spotRes = await axios.get("http://localhost:3001/api/spot-price", {
@@ -61,9 +57,7 @@ export default function usePortfolioBalances(chainId, wallet) {
                 },
               });
 
-              // ✅ Extract first value + convert from wei to dollars
-              const raw = Object.values(spotRes.data)[0];
-              usdPrice = Number(raw) / 1e18;
+              usdPrice = Number(spotRes.data.priceUsd) || 0;
 
             } catch (err) {
               console.error(`Spot price error for ${symbol}:`, err.message);
