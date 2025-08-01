@@ -194,6 +194,108 @@ app.get('/api/gas-price', async (req, res) => {
   }
 });
 
+// ✅ 1inch Portfolio - ERC20 current value proxy
+app.get('/api/portfolio', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[PORTFOLIO] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/current_value?addresses=${wallet}&chain_id=${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    console.log('Portfolio API response:', response.data);
+
+    // Extract only token results
+    const tokenResult = response.data.result.find(
+      (r) => r.protocol_name === 'token'
+    );
+    const tokens = tokenResult ? tokenResult.result : [];
+
+    res.json({ tokens });
+
+  } catch (err) {
+    console.error('Portfolio API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch portfolio',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
+// ✅ 1inch Portfolio - PnL proxy
+app.get('/api/portfolio-pnl', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[PORTFOLIO PnL] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/profit_and_loss?addresses=${wallet}&chain_id=${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+    console.log('Portfolio PnL API response:', response.data);
+    res.json(response.data);
+  } catch (err) {
+    console.error('Portfolio PnL API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch portfolio PnL',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
+// ✅ 1inch Portfolio - ERC20 balances proxy
+app.get('/api/portfolio-balances', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[PORTFOLIO BALANCES] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/balances?addresses=${wallet}&chain_id=${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+    console.log('Portfolio BALANCES API response:', response.data);
+    res.json(response.data);
+  } catch (err) {
+    console.error('Portfolio BALANCES API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch portfolio balances',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
 
 
 app.listen(PORT, () => {
