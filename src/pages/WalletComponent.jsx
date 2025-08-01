@@ -1,13 +1,13 @@
 import React from 'react';
 import { Wallet } from 'lucide-react';
 import { useAccount, useChainId } from 'wagmi';
-import useSupportedChains from '../hooks/useSupportedChains';
+//import useSupportedChains from '../hooks/useSupportedChains';
 import usePortfolioBalances from '../hooks/usePortfolioBalances';
 
 const WalletComponent = () => {
   const { address, isConnected, isConnecting } = useAccount();
   const chainId = useChainId() || 1;
-  const { chains, loading: loadingChains } = useSupportedChains();
+  //const { chains, loading: loadingChains } = useSupportedChains();
 
   // ✅ Use the same hook as Portfolio
   const { tokens, loading: loadingBalances } = usePortfolioBalances(chainId, address);
@@ -121,22 +121,7 @@ const WalletComponent = () => {
         )}
 
         {/* Supported Networks */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-          <h4 className="font-medium text-blue-900 mb-2">Supported Networks</h4>
-          {loadingChains ? (
-            <p className="text-blue-700 text-sm">Loading supported networks...</p>
-          ) : (
-            <div className="text-sm text-blue-700 space-y-1">
-              {chains.length > 0 ? (
-                chains.map((chain) => (
-                  <div key={chain.id}>• {chain.title || chain.name || `Chain ID: ${chain.id}`}</div>
-                ))
-              ) : (
-                <p>No supported networks found.</p>
-              )}
-            </div>
-          )}
-        </div>
+        
       </div>
     </div>
   );

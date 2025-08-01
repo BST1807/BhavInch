@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+// 🗺️ ChainId → CoinGecko ID mapping
+const CHAIN_ID_TO_COINGECKO_ID = {
+  1: "ethereum",          // Ethereum Mainnet
+  137: "matic-network",   // Polygon Mainnet
+  56: "binancecoin",      // BNB Chain Mainnet
+  80001: "matic-network", // Polygon Mumbai Testnet → use same price as Polygon Mainnet
+  // Add more as needed
+};
+
 export default function usePortfolioBalances(chainId, wallet) {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,6 +21,7 @@ export default function usePortfolioBalances(chainId, wallet) {
       setLoading(true);
 
       try {
+        // ✅ Fetch balances
         const response = await axios.get("http://localhost:3001/api/balances", {
           params: { chainId, wallet },
         });
@@ -33,12 +43,37 @@ export default function usePortfolioBalances(chainId, wallet) {
             balanceRaw: balance,
           }));
 
+        // ✅ Fetch all tokens
         const tokensRes = await axios.get("http://localhost:3001/api/all-tokens", {
           params: { chainId },
         });
 
         const allTokens = tokensRes.data.tokens || tokensRes.data;
 
+        // ✅ Get native coin USD price
+        let nativeUSD = 0;
+        const coingeckoId = CHAIN_ID_TO_COINGECKO_ID[chainId] || "ethereum";
+
+        try {
+          const coingeckoRes = await axios.get(
+            `https://api.coingecko.com/api/v3/simple/price`,
+            {
+              params: {
+                ids: coingeckoId,
+                vs_currencies: "usd",
+              },
+            }
+          );
+
+          console.log("Native coin USD response:", coingeckoRes.data);
+
+          nativeUSD = coingeckoRes.data[coingeckoId].usd;
+          console.log(`Native coin USD (${coingeckoId}):`, nativeUSD);
+        } catch (err) {
+          console.error("Native coin USD fetch error:", err.message);
+        }
+
+        // ✅ Enrich tokens with metadata & USD price
         const enriched = await Promise.all(
           tokenList.map(async (t) => {
             const tokenMeta = allTokens[t.address] || {};
@@ -49,6 +84,7 @@ export default function usePortfolioBalances(chainId, wallet) {
             const balanceFormatted = Number(t.balanceRaw) / 10 ** decimals;
 
             let usdPrice = 0;
+
             try {
               const spotRes = await axios.get("http://localhost:3001/api/spot-price", {
                 params: {
@@ -57,8 +93,13 @@ export default function usePortfolioBalances(chainId, wallet) {
                 },
               });
 
-              usdPrice = Number(spotRes.data.priceUsd) || 0;
+              const nativePrice = Number(spotRes.data.priceInNative) || 0;
 
+              usdPrice = nativePrice * nativeUSD;
+
+              console.log(
+                `Spot price for ${symbol}: Native ${nativePrice}, USD ${usdPrice}`
+              );
             } catch (err) {
               console.error(`Spot price error for ${symbol}:`, err.message);
             }

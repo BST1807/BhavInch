@@ -41,7 +41,7 @@ app.get('/api/balances', async (req, res) => {
   }
 });
 
-// ✅ FIXED SPOT PRICE endpoint
+// ✅ Spot price → price in native token
 app.get('/api/spot-price', async (req, res) => {
   const { chainId, tokenAddress } = req.query;
 
@@ -60,13 +60,13 @@ app.get('/api/spot-price', async (req, res) => {
         },
       }
     );
-  
+
     const raw = Object.values(response.data)[0];
-    const priceUsd = Number(raw) / 1e18;
+    const priceInNative = Number(raw) / 1e18;
 
-    console.log("Spot Price Raw:", response.data, "| Normalized USD:", priceUsd);
+    console.log("Spot Price Raw:", response.data, "| Native:", priceInNative);
 
-    res.json({ priceUsd });
+    res.json({ priceInNative });
 
   } catch (err) {
     console.error('Spot price error:', err.response?.data || err.message);
@@ -74,36 +74,57 @@ app.get('/api/spot-price', async (req, res) => {
   }
 });
 
-
-// ✅ GAS PRICE endpoint using 1inch Gas Price API
-app.get('/api/gas-price', async (req, res) => {
+// ✅ Native token → USD
+app.get('/api/native-price', async (req, res) => {
   const { chainId } = req.query;
 
   if (!chainId) {
     return res.status(400).json({ error: 'chainId is required' });
   }
 
-  console.log(`[GAS PRICE] Chain: ${chainId}`);
+  let id = 'ethereum';
+  if (chainId === '137') id = 'polygon';
+  if (chainId === '56') id = 'binancecoin';
 
   try {
-    const response = await axios.get(
-      `https://api.1inch.dev/gas-price/v1.4/${chainId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-        },
-      }
-    );
+    const cg = await axios.get(`https://api.coingecko.com/api/v3/simple/price`, {
+      params: { ids: id, vs_currencies: 'usd' },
+    });
+    const usd = cg.data[id]?.usd || 0;
 
-    // ✅ 1inch returns baseFee, plus low/medium/high/instant
-    // Just send back the whole data — your frontend expects .medium.maxFeePerGas
-    res.json(response.data);
-
+    console.log(`[NATIVE PRICE] ${id} USD:`, usd);
+    res.json({ usd });
   } catch (err) {
-    console.error('Gas price error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to fetch gas price', details: err.message });
+    console.error('Native price error:', err.message);
+    res.status(500).json({ error: 'Could not fetch native token USD price' });
   }
 });
+
+// ✅ All tokens metadata
+app.get('/api/all-tokens', async (req, res) => {
+  const { chainId } = req.query;
+
+  if (!chainId) {
+    return res.status(400).json({ error: 'chainId is required' });
+  }
+
+  console.log(`Fetching all tokens for chain ${chainId}...`);
+
+  try {
+    const response = await axios.get(`https://api.1inch.dev/token/v1.2/${chainId}`, {
+      headers: {
+        Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+      },
+    });
+
+    res.json({ tokens: response.data });
+
+  } catch (err) {
+    console.error('Error fetching all tokens:', err);
+    res.status(500).json({ error: 'Failed to fetch all tokens', details: err.message });
+  }
+});
+
 
 // ✅ QUOTE endpoint
 app.get('/api/quote', async (req, res) => {
@@ -144,30 +165,36 @@ app.get('/api/quote', async (req, res) => {
 });
 
 
-// ✅ ALL TOKENS endpoint
-app.get('/api/all-tokens', async (req, res) => {
+
+// ✅ GAS PRICE endpoint using 1inch Gas Price API
+app.get('/api/gas-price', async (req, res) => {
   const { chainId } = req.query;
 
   if (!chainId) {
     return res.status(400).json({ error: 'chainId is required' });
   }
 
-  console.log(`Fetching all tokens for chain ${chainId}...`);
+  console.log(`[GAS PRICE] Chain: ${chainId}`);
 
   try {
-    const response = await axios.get(`https://api.1inch.dev/token/v1.2/${chainId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
-      },
-    });
+    const response = await axios.get(
+      `https://api.1inch.dev/gas-price/v1.4/${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
 
-    res.json({ tokens: response.data });
+    res.json(response.data);
 
   } catch (err) {
-    console.error('Error fetching all tokens:', err);
-    res.status(500).json({ error: 'Failed to fetch all tokens', details: err.message });
+    console.error('Gas price error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to fetch gas price', details: err.message });
   }
 });
+
+
 
 app.listen(PORT, () => {
   console.log(`Proxy server running on http://localhost:${PORT}`);
