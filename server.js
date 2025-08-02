@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { setupTrustlinesAndFundDistributor } = require('./server/stellarBridge.cjs');
+import StellarSdk from 'stellar-sdk';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
@@ -10,6 +14,7 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
+app.use(express.json()); 
 
 // ✅ BALANCES + ALLOWANCES endpoint
 app.get('/api/balances', async (req, res) => {
@@ -363,6 +368,24 @@ app.get('/api/swap', async (req, res) => {
       error: 'Failed to fetch swap transaction data',
       details: err.response?.data || err.message,
     });
+  }
+});
+
+
+// ✅ Stellar Bridge Route
+app.post('/api/stellar-bridge', async (req, res) => {
+  const { tokenName, tokenAmount } = req.body;
+
+  if (!tokenName || !tokenAmount) {
+    return res.status(400).json({ error: 'tokenName and tokenAmount are required' });
+  }
+
+  try {
+    await setupTrustlinesAndFundDistributor(tokenName, tokenAmount);
+    res.json({ status: 'OK', message: `Issued ${tokenAmount} ${tokenName} to Alice` });
+  } catch (err) {
+    console.error('Stellar Bridge error:', err.message);
+    res.status(500).json({ error: 'Stellar Bridge failed', details: err.message });
   }
 });
 

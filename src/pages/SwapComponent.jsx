@@ -11,7 +11,9 @@ const SwapComponent = () => {
   const [gasPrice, setGasPrice] = useState(null);
   const [tokenList, setTokenList] = useState([]);
   const [allTokenList, setAllTokenList] = useState([]);
-  const [swapTx, setSwapTx] = useState(null); // ✅ store just tx
+  const [swapTx, setSwapTx] = useState(null);
+
+  const [bridgeStatus, setBridgeStatus] = useState(null); // ✅ NEW
 
   const { address: walletAddress, isConnected } = useAccount();
   const chainId = useChainId() || 1;
@@ -148,7 +150,17 @@ const SwapComponent = () => {
       });
 
       console.log('[SWAP] Tx:', response.data.tx);
-      setSwapTx(response.data.tx); // ✅ just store tx
+      setSwapTx(response.data.tx);
+
+      // ✅ Call Stellar bridge too
+      if (toAmount && toToken?.symbol) {
+        const bridgeRes = await axios.post('http://localhost:3001/api/stellar-bridge', {
+          tokenName: toToken.symbol,
+          tokenAmount: toAmount,
+        });
+        console.log('[BRIDGE] Response:', bridgeRes.data);
+        setBridgeStatus(`✅ Stellar bridge done: ${bridgeRes.data.message}`);
+      }
 
     } catch (err) {
       console.error('Swap API error:', err.response?.data || err.message);
@@ -304,6 +316,12 @@ const SwapComponent = () => {
             <div><strong>Gas:</strong> {swapTx.gas} GAS UNITS</div>
             <div><strong>GasPrice:</strong> {swapTx.gasPrice} WEI</div>
             <div className="break-all"><strong>Data:</strong> {swapTx.data}</div>
+          </div>
+        )}
+
+        {bridgeStatus && (
+          <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-sm">
+            {bridgeStatus}
           </div>
         )}
       </div>
