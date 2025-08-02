@@ -100,6 +100,35 @@ app.get('/api/native-price', async (req, res) => {
   }
 });
 
+app.get('/api/search-token', async (req, res) => {
+  const query = req.query.query;
+  const chain = req.query.chainId || 1;
+  console.log(`[SEARCH] Chain: ${chain} | Query: ${query}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/token/v1.2/${chain}/search`,
+      {
+        params: { query },
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+
+    res.json(response.data);
+
+  } catch (err) {
+    console.error('Search error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Search failed',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
 // ✅ All tokens metadata
 app.get('/api/all-tokens', async (req, res) => {
   const { chainId } = req.query;
@@ -124,6 +153,7 @@ app.get('/api/all-tokens', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch all tokens', details: err.message });
   }
 });
+
 
 
 // ✅ QUOTE endpoint
