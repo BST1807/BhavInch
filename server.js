@@ -296,6 +296,46 @@ app.get('/api/portfolio-balances', async (req, res) => {
 });
 
 
+// ✅ SWAP endpoint — returns swap tx data, does NOT broadcast!
+app.get('/api/swap', async (req, res) => {
+  const { chainId, fromTokenAddress, toTokenAddress, amount, wallet, slippage } = req.query;
+
+  if (!chainId || !fromTokenAddress || !toTokenAddress || !amount || !wallet || !slippage) {
+    return res.status(400).json({
+      error: 'chainId, fromTokenAddress, toTokenAddress, amount, wallet, and slippage are required'
+    });
+  }
+
+  console.log(`[SWAP] Chain: ${chainId} | From: ${fromTokenAddress} | To: ${toTokenAddress} | Amount: ${amount} | Wallet: ${wallet} | Slippage: ${slippage}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/swap/v6.0/${chainId}/swap`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+        params: {
+          src: fromTokenAddress,
+          dst: toTokenAddress,
+          amount: amount,
+          from: wallet,
+          slippage: slippage,
+        }
+      }
+    );
+    console.log('Swap API response:', response.data);
+    res.json(response.data);
+
+  } catch (err) {
+    console.error('Swap API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch swap transaction data',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
 
 
 app.listen(PORT, () => {

@@ -9,8 +9,9 @@ const SwapComponent = () => {
   const [fromToken, setFromToken] = useState(null);
   const [toToken, setToToken] = useState(null);
   const [gasPrice, setGasPrice] = useState(null);
-  const [tokenList, setTokenList] = useState([]); // owned tokens
-  const [allTokenList, setAllTokenList] = useState([]); // all tokens
+  const [tokenList, setTokenList] = useState([]);
+  const [allTokenList, setAllTokenList] = useState([]);
+  const [swapTx, setSwapTx] = useState(null); // ✅ store just tx
 
   const { address: walletAddress, isConnected } = useAccount();
   const chainId = useChainId() || 1;
@@ -22,7 +23,7 @@ const SwapComponent = () => {
 
       try {
         const balancesRes = await axios.get('http://localhost:3001/api/balances', {
-          params: { chainId, wallet: walletAddress }
+          params: { chainId, wallet: walletAddress },
         });
 
         const balances = balancesRes.data.balances || balancesRes.data;
@@ -32,24 +33,26 @@ const SwapComponent = () => {
           .map(([address, balance]) => ({ address, balance }));
 
         const allTokensRes = await axios.get('http://localhost:3001/api/all-tokens', {
-          params: { chainId }
+          params: { chainId },
         });
 
         const allTokens = allTokensRes.data.tokens;
 
-        const userTokens = nonZeroTokens.map(({ address, balance }) => {
-          const tokenInfo = allTokens[address.toLowerCase()];
-          if (!tokenInfo) return null;
-          return {
-            symbol: tokenInfo.symbol,
-            name: tokenInfo.name,
-            address: tokenInfo.address,
-            decimals: tokenInfo.decimals,
-            balanceRaw: balance
-          };
-        }).filter(Boolean);
+        const userTokens = nonZeroTokens
+          .map(({ address, balance }) => {
+            const tokenInfo = allTokens[address.toLowerCase()];
+            if (!tokenInfo) return null;
+            return {
+              symbol: tokenInfo.symbol,
+              name: tokenInfo.name,
+              address: tokenInfo.address,
+              decimals: tokenInfo.decimals,
+              balanceRaw: balance,
+            };
+          })
+          .filter(Boolean);
 
-        const allTokensArray = Object.values(allTokens).map(token => ({
+        const allTokensArray = Object.values(allTokens).map((token) => ({
           symbol: token.symbol,
           name: token.name,
           address: token.address,
@@ -58,7 +61,6 @@ const SwapComponent = () => {
 
         setTokenList(userTokens);
         setAllTokenList(allTokensArray);
-
       } catch (err) {
         console.error('Balances or tokens error:', err.response?.data || err.message);
       }
@@ -67,7 +69,7 @@ const SwapComponent = () => {
     fetchData();
   }, [walletAddress, chainId]);
 
-  // Fetch quote
+  // Quote
   useEffect(() => {
     const fetchQuote = async () => {
       if (!fromToken || !toToken || !chainId) return;
@@ -109,13 +111,13 @@ const SwapComponent = () => {
     fetchQuote();
   }, [fromAmount, fromToken, toToken, chainId]);
 
-  // Fetch gas price
+  // Gas price
   useEffect(() => {
     const fetchGasPrice = async () => {
       if (!chainId) return;
       try {
         const response = await axios.get('http://localhost:3001/api/gas-price', {
-          params: { chainId }
+          params: { chainId },
         });
         setGasPrice(response.data);
       } catch (err) {
@@ -124,6 +126,34 @@ const SwapComponent = () => {
     };
     fetchGasPrice();
   }, [chainId]);
+
+  const handleSwap = async () => {
+    if (!fromToken || !toToken || !walletAddress || !chainId) return;
+
+    const amt = Number(fromAmount);
+    if (!amt || amt <= 0) return;
+
+    const amountInWei = BigInt(Math.floor(amt * 10 ** fromToken.decimals)).toString();
+
+    try {
+      const response = await axios.get('http://localhost:3001/api/swap', {
+        params: {
+          chainId,
+          fromTokenAddress: fromToken.address,
+          toTokenAddress: toToken.address,
+          amount: amountInWei,
+          wallet: walletAddress,
+          slippage: 1, // 1% slippage
+        },
+      });
+
+      console.log('[SWAP] Tx:', response.data.tx);
+      setSwapTx(response.data.tx); // ✅ just store tx
+
+    } catch (err) {
+      console.error('Swap API error:', err.response?.data || err.message);
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto">
@@ -136,7 +166,10 @@ const SwapComponent = () => {
             <div className="flex justify-between mb-2">
               <span className="text-sm text-gray-600">From</span>
               <span className="text-sm text-gray-600">
-                Balance: {fromToken ? (Number(fromToken.balanceRaw) / 10 ** fromToken.decimals).toFixed(4) : '0.00'}
+                Balance:{' '}
+                {fromToken
+                  ? (Number(fromToken.balanceRaw) / 10 ** fromToken.decimals).toFixed(4)
+                  : '0.00'}
               </span>
             </div>
             <div className="flex items-center space-x-3">
@@ -144,12 +177,14 @@ const SwapComponent = () => {
                 className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
                 value={fromToken?.address || ''}
                 onChange={(e) => {
-                  const selected = tokenList.find(t => t.address.toLowerCase() === e.target.value.toLowerCase());
+                  const selected = tokenList.find(
+                    (t) => t.address.toLowerCase() === e.target.value.toLowerCase()
+                  );
                   setFromToken(selected);
                 }}
               >
                 <option value="">Select Token</option>
-                {tokenList.map(token => (
+                {tokenList.map((token) => (
                   <option key={token.address} value={token.address}>
                     {token.symbol} ({token.name})
                   </option>
@@ -196,12 +231,14 @@ const SwapComponent = () => {
                 className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
                 value={toToken?.address || ''}
                 onChange={(e) => {
-                  const selected = allTokenList.find(t => t.address.toLowerCase() === e.target.value.toLowerCase());
+                  const selected = allTokenList.find(
+                    (t) => t.address.toLowerCase() === e.target.value.toLowerCase()
+                  );
                   setToToken(selected);
                 }}
               >
                 <option value="">Select Token</option>
-                {allTokenList.map(token => (
+                {allTokenList.map((token) => (
                   <option key={token.address} value={token.address}>
                     {token.symbol} ({token.name})
                   </option>
@@ -224,31 +261,51 @@ const SwapComponent = () => {
             Connect your wallet to start swapping.
           </p>
         ) : (
-          <p className="w-full mt-6 text-center text-green-600 font-medium">
-            Wallet Connected
-          </p>
+          <>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 space-y-1">
+              <div className="flex justify-between">
+                <span>Rate</span>
+                <span>
+                  {toAmount && fromAmount
+                    ? `1 ${fromToken?.symbol} → ${(Number(toAmount) / Number(fromAmount)).toFixed(
+                        6
+                      )} ${toToken?.symbol}`
+                    : '-'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Estimated Received</span>
+                <span>{toAmount ? `${toAmount} ${toToken?.symbol}` : '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Gas Price</span>
+                <span>
+                  {gasPrice
+                    ? `${(Number(gasPrice.medium.maxFeePerGas) / 1e9).toFixed(2)} Gwei`
+                    : '-'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              onClick={handleSwap}
+            >
+              Get Swap Transaction Data
+            </button>
+          </>
         )}
 
-        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-          <div className="text-sm text-gray-600 space-y-1">
-            <div className="flex justify-between">
-              <span>Rate</span>
-              <span>{toAmount && fromAmount ? `1 ${fromToken?.symbol} → ${(Number(toAmount) / Number(fromAmount)).toFixed(6)} ${toToken?.symbol}` : '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Estimated Received</span>
-              <span>{toAmount ? `${toAmount} ${toToken?.symbol}` : '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Gas Price</span>
-              <span>
-                {gasPrice
-                  ? `${(Number(gasPrice.medium.maxFeePerGas) / 1e9).toFixed(2)} Gwei`
-                  : '-'}
-              </span>
-            </div>
+        {swapTx && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-800 space-y-1">
+            <div><strong>From:</strong> {swapTx.from}</div>
+            <div><strong>To:</strong> {swapTx.to}</div>
+            <div><strong>Value:</strong> {swapTx.value} WEI</div>
+            <div><strong>Gas:</strong> {swapTx.gas} GAS UNITS</div>
+            <div><strong>GasPrice:</strong> {swapTx.gasPrice} WEI</div>
+            <div className="break-all"><strong>Data:</strong> {swapTx.data}</div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
