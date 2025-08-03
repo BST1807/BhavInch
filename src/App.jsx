@@ -42,10 +42,8 @@ const App = () => {
               <footer className="bg-white border-t border-gray-200 mt-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   <div className="text-center text-sm text-gray-600">
-                    <p>DeFiSwap - Built with React & 1inch API</p>
-                    <p className="mt-1">
-                      Environment: {import.meta.env.NODE_ENV || 'development'}
-                    </p>
+                    <p>BhavInch - Built with 1inch API & Stellar</p>
+                    
                   </div>
                 </div>
               </footer>

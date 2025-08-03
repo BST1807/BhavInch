@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAccount, useChainId } from 'wagmi';
 import { ArrowLeftRight } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 const SwapComponent = () => {
   const [fromAmount, setFromAmount] = useState('');
@@ -12,13 +13,14 @@ const SwapComponent = () => {
   const [tokenList, setTokenList] = useState([]);
   const [allTokenList, setAllTokenList] = useState([]);
   const [swapTx, setSwapTx] = useState(null);
+  const [bridgeStatus, setBridgeStatus] = useState(null);
 
-  const [bridgeStatus, setBridgeStatus] = useState(null); // ✅ NEW
+  const [loadingSwap, setLoadingSwap] = useState(false);
+  const [loadingBridge, setLoadingBridge] = useState(false);
 
   const { address: walletAddress, isConnected } = useAccount();
   const chainId = useChainId() || 1;
 
-  // Fetch balances & tokens
   useEffect(() => {
     const fetchData = async () => {
       if (!walletAddress || !chainId) return;
@@ -71,7 +73,6 @@ const SwapComponent = () => {
     fetchData();
   }, [walletAddress, chainId]);
 
-  // Quote
   useEffect(() => {
     const fetchQuote = async () => {
       if (!fromToken || !toToken || !chainId) return;
@@ -89,8 +90,6 @@ const SwapComponent = () => {
             amount: amountInWei,
           },
         });
-
-        console.log('[QUOTE] Raw:', response.data);
 
         const toAmountRaw =
           response.data.dstAmount ||
@@ -113,7 +112,6 @@ const SwapComponent = () => {
     fetchQuote();
   }, [fromAmount, fromToken, toToken, chainId]);
 
-  // Gas price
   useEffect(() => {
     const fetchGasPrice = async () => {
       if (!chainId) return;
@@ -138,6 +136,8 @@ const SwapComponent = () => {
     const amountInWei = BigInt(Math.floor(amt * 10 ** fromToken.decimals)).toString();
 
     try {
+      setLoadingSwap(true);
+
       const response = await axios.get('http://localhost:3001/api/swap', {
         params: {
           chainId,
@@ -145,39 +145,57 @@ const SwapComponent = () => {
           toTokenAddress: toToken.address,
           amount: amountInWei,
           wallet: walletAddress,
-          slippage: 1, // 1% slippage
+          slippage: 1,
         },
       });
 
-      console.log('[SWAP] Tx:', response.data.tx);
       setSwapTx(response.data.tx);
-
-      // ✅ Call Stellar bridge too
-      if (toAmount && toToken?.symbol) {
-        const bridgeRes = await axios.post('http://localhost:3001/api/stellar-bridge', {
-          tokenName: toToken.symbol,
-          tokenAmount: toAmount,
-        });
-        console.log('[BRIDGE] Response:', bridgeRes.data);
-        setBridgeStatus(`✅ Stellar bridge done: ${bridgeRes.data.message}`);
-      }
-
+      toast.success('Transaction data generated!');
     } catch (err) {
       console.error('Swap API error:', err.response?.data || err.message);
+      toast.error('Failed to get transaction data.');
+    } finally {
+      setLoadingSwap(false);
+    }
+  };
+
+  const handleStellarBridge = async () => {
+    if (!toAmount || !toToken?.symbol) {
+      console.error('No valid amount or token for Stellar bridge.');
+      return;
+    }
+
+    try {
+      setLoadingBridge(true);
+
+      const bridgeRes = await axios.post('http://localhost:3001/api/stellar-bridge', {
+        tokenName: toToken.symbol,
+        tokenAmount: toAmount,
+      });
+
+      setBridgeStatus(`✅ Stellar bridge done: ${bridgeRes.data.message}`);
+      toast.success('Swap completed on Stellar!');
+    } catch (err) {
+      console.error('Stellar bridge error:', err.response?.data || err.message);
+      toast.error('Failed to bridge to Stellar.');
+    } finally {
+      setLoadingBridge(false);
     }
   };
 
   return (
     <div className="max-w-md mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Swap Tokens</h2>
+      <Toaster position="top-right" />
+
+      <div className="bg-gray-900 text-gray-100 rounded-2xl shadow-lg border border-gray-800 p-6">
+        <h2 className="text-xl font-semibold mb-6">Swap Tokens</h2>
 
         <div className="space-y-4">
-          {/* From Token */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-600">From</span>
-              <span className="text-sm text-gray-600">
+          {/* From Section */}
+          <div className="bg-gray-800 rounded-xl p-4">
+            <div className="flex justify-between mb-2 text-sm text-gray-400">
+              <span>From</span>
+              <span>
                 Balance:{' '}
                 {fromToken
                   ? (Number(fromToken.balanceRaw) / 10 ** fromToken.decimals).toFixed(4)
@@ -186,7 +204,7 @@ const SwapComponent = () => {
             </div>
             <div className="flex items-center space-x-3">
               <select
-                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
+                className="w-full max-w-[200px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
                 value={fromToken?.address || ''}
                 onChange={(e) => {
                   const selected = tokenList.find(
@@ -207,11 +225,18 @@ const SwapComponent = () => {
                 type="number"
                 min="0"
                 step="any"
-                className="flex-1 bg-transparent text-right text-xl font-medium outline-none text-gray-900"
+                className="w-full max-w-[150px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-right text-xl font-medium outline-none text-gray-100"
                 placeholder="0.0"
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
               />
+            </div>
+
+            <div className="mt-2 flex items-center text-xs text-gray-400 relative group w-max">
+              <span className="cursor-pointer">ℹ️</span>
+              <div className="absolute left-5 top-full mt-1 w-64 p-2 text-xs text-gray-300 bg-gray-900 border border-gray-700 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                It is recommended to use the native coin of the chain to avoid paying gas fees for approval.
+              </div>
             </div>
           </div>
 
@@ -219,7 +244,7 @@ const SwapComponent = () => {
           <div className="flex justify-center">
             <button
               type="button"
-              className="p-2 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+              className="p-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors"
               onClick={() => {
                 const temp = fromToken;
                 setFromToken(toToken);
@@ -228,19 +253,19 @@ const SwapComponent = () => {
                 setToAmount('');
               }}
             >
-              <ArrowLeftRight className="w-5 h-5 text-gray-600 transform rotate-90" />
+              <ArrowLeftRight className="w-5 h-5 text-gray-300 transform rotate-90" />
             </button>
           </div>
 
-          {/* To Token */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-600">To</span>
-              <span className="text-sm text-gray-600">Balance: -</span>
+          {/* To Section */}
+          <div className="bg-gray-800 rounded-xl p-4">
+            <div className="flex justify-between mb-2 text-sm text-gray-400">
+              <span>To</span>
+              <span>Balance: -</span>
             </div>
             <div className="flex items-center space-x-3">
               <select
-                className="px-3 py-2 border border-gray-200 rounded-lg text-gray-900"
+                className="w-full max-w-[200px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
                 value={toToken?.address || ''}
                 onChange={(e) => {
                   const selected = allTokenList.find(
@@ -259,22 +284,22 @@ const SwapComponent = () => {
 
               <input
                 type="text"
-                className="flex-1 bg-transparent text-right text-xl font-medium outline-none text-gray-900"
+                readOnly
+                className="w-full max-w-[150px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-right text-xl font-medium outline-none text-gray-100"
                 placeholder="0.0"
                 value={toAmount}
-                readOnly
               />
             </div>
           </div>
         </div>
 
         {!isConnected ? (
-          <p className="w-full mt-6 text-center text-gray-600 font-medium">
+          <p className="w-full mt-6 text-center text-gray-400 font-medium">
             Connect your wallet to start swapping.
           </p>
         ) : (
           <>
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 space-y-1">
+            <div className="mt-4 p-3 bg-gray-800 rounded-lg text-sm text-gray-400 space-y-1">
               <div className="flex justify-between">
                 <span>Rate</span>
                 <span>
@@ -300,27 +325,65 @@ const SwapComponent = () => {
             </div>
 
             <button
-              className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className={`w-full mt-4 px-4 py-3 rounded-lg text-white ${
+                loadingSwap ? 'bg-blue-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
               onClick={handleSwap}
+              disabled={loadingSwap}
             >
-              Get Swap Transaction Data
+              {loadingSwap ? 'Getting TX Data...' : 'Get Swap Transaction Data'}
             </button>
           </>
         )}
 
         {swapTx && (
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-800 space-y-1">
-            <div><strong>From:</strong> {swapTx.from}</div>
-            <div><strong>To:</strong> {swapTx.to}</div>
-            <div><strong>Value:</strong> {swapTx.value} WEI</div>
-            <div><strong>Gas:</strong> {swapTx.gas} GAS UNITS</div>
-            <div><strong>GasPrice:</strong> {swapTx.gasPrice} WEI</div>
-            <div className="break-all"><strong>Data:</strong> {swapTx.data}</div>
-          </div>
+          <>
+            <div className="mt-6 p-4 bg-gray-800 rounded-lg text-xs text-gray-300 space-y-1">
+              <div><strong>From:</strong> {swapTx.from}</div>
+              <div><strong>To:</strong> {swapTx.to}</div>
+              <div><strong>Value:</strong> {swapTx.value} WEI</div>
+              <div><strong>Gas:</strong> {swapTx.gas} GAS UNITS</div>
+              <div><strong>GasPrice:</strong> {swapTx.gasPrice} WEI</div>
+              <div className="break-all"><strong>Data:</strong> {swapTx.data}</div>
+            </div>
+
+            <button
+              className={`w-full mt-4 px-4 py-3 rounded-lg text-white flex justify-center items-center ${
+                loadingBridge
+                  ? 'bg-green-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+              onClick={handleStellarBridge}
+              disabled={loadingBridge || !swapTx || !toAmount}
+            >
+              {loadingBridge && (
+                <svg
+                  className="animate-spin h-5 w-5 text-white mr-2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="none"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
+              )}
+              {loadingBridge ? 'Bridging to Stellar...' : 'Swap on Stellar'}
+            </button>
+          </>
         )}
 
         {bridgeStatus && (
-          <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg text-sm">
+          <div className="mt-4 p-3 bg-green-900 text-green-200 rounded-lg text-sm">
             {bridgeStatus}
           </div>
         )}
