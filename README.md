@@ -8,11 +8,11 @@ This dApp bridges EVM‐based DeFi with Stellar’s ultra‐fast, low‐fee rail
 Endpoints: https://api.1inch.dev/balance/v1.2/${chainId}/balances/${wallet}
 
 2.TOKEN API
-Endpoints:  https://api.1inch.dev/token/v1.2/${chainId}
+Endpoints:  https://api.1inch.dev/token/v1.2/${chainId}, 
 	    https://api.1inch.dev/token/v1.2/${chain}/search
 
 3.SWAP API
-Endpoints: https://api.1inch.dev/swap/v6.0/${chainId}/quote
+Endpoints: https://api.1inch.dev/swap/v6.0/${chainId}/quote, 
 	   https://api.1inch.dev/swap/v6.0/${chainId}/swap
 
 4.GAS PRICE API
