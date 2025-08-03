@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Wallet, ArrowLeftRight, PieChart, Settings, Menu, X, Search } from 'lucide-react';
-import { ConnectButton } from '@rainbow-me/rainbowkit'; // ✅ Add RainbowKit ConnectButton
+import { Wallet, ArrowLeftRight, PieChart, Menu, X, Search, Info } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -12,6 +12,7 @@ const Header = () => {
     { name: 'Portfolio', path: '/portfolio', icon: PieChart },
     { name: 'Wallet', path: '/wallet', icon: Wallet },
     { name: 'Search Token', path: '/search', icon: Search },
+    { name: 'About', path: '/about', icon: Info }, // ✅ Added About page!
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -20,7 +21,8 @@ const Header = () => {
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
+          {/* Left: Logo */}
+          <div className="flex items-center flex-shrink-0">
             <Link to="/swap" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <ArrowLeftRight className="w-5 h-5 text-white" />
@@ -29,7 +31,8 @@ const Header = () => {
             </Link>
           </div>
 
-          <nav className="hidden md:flex space-x-8">
+          {/* Center: Navigation */}
+          <nav className="hidden md:flex flex-1 justify-center space-x-6">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
@@ -49,11 +52,9 @@ const Header = () => {
             })}
           </nav>
 
-          <div className="flex items-center space-x-4">
-            <ConnectButton /> {/* ✅ Wallet connect button here! */}
-            <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
+          {/* Right: Connect + Mobile Menu Toggle */}
+          <div className="flex items-center space-x-4 flex-shrink-0">
+            <ConnectButton />
             <button
               className="md:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -63,6 +64,7 @@ const Header = () => {
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <nav className="space-y-2">

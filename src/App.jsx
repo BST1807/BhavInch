@@ -16,6 +16,7 @@ import SwapComponent from './pages/SwapComponent';
 import PortfolioComponent from './pages/Portfolio';
 import WalletComponent from './pages/WalletComponent';
 import SearchTokenComponent from './pages/SearchTokenComponent';
+import AboutPage from './pages/AboutPage'; // ✅ NEW About page import
 
 // ✅ Create QueryClient once
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => {
                   <Route path="/portfolio" element={<PortfolioComponent />} />
                   <Route path="/wallet" element={<WalletComponent />} />
                   <Route path="/search" element={<SearchTokenComponent />} />
+                  <Route path="/about" element={<AboutPage />} /> {/* ✅ About route */}
                 </Routes>
               </main>
 
@@ -43,7 +45,6 @@ const App = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                   <div className="text-center text-sm text-gray-600">
                     <p>BhavInch - Built with 1inch API & Stellar</p>
-                    
                   </div>
                 </div>
               </footer>
