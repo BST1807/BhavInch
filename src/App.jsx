@@ -16,9 +16,9 @@ import SwapComponent from './pages/SwapComponent';
 import PortfolioComponent from './pages/Portfolio';
 import WalletComponent from './pages/WalletComponent';
 import SearchTokenComponent from './pages/SearchTokenComponent';
-import AboutPage from './pages/AboutPage'; // ✅ NEW About page import
+import AboutPage from './pages/AboutPage'; 
 
-// ✅ Create QueryClient once
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -37,7 +37,7 @@ const App = () => {
                   <Route path="/portfolio" element={<PortfolioComponent />} />
                   <Route path="/wallet" element={<WalletComponent />} />
                   <Route path="/search" element={<SearchTokenComponent />} />
-                  <Route path="/about" element={<AboutPage />} /> {/* ✅ About route */}
+                  <Route path="/about" element={<AboutPage />} /> 
                 </Routes>
               </main>
 

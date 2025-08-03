@@ -1,5 +1,5 @@
 import { sepolia, polygonMumbai, avalancheFuji } from 'wagmi/chains';
-import { polygonAmoy } from '../lib/wagmi.config'; // ✅ reuse!
+import { polygonAmoy } from '../lib/wagmi.config'; 
 
 export default function useSupportedChains() {
   const chains = [

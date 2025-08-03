@@ -1,4 +1,4 @@
-// ✅ components/TokenDetailModal.jsx
+
 import React from "react";
 
 export default function TokenDetailModal({ isOpen, onClose, token }) {

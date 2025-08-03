@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-// 🗺️ ChainId → CoinGecko ID mapping
+
 const CHAIN_ID_TO_COINGECKO_ID = {
   1: "ethereum",          // Ethereum Mainnet
   137: "matic-network",   // Polygon Mainnet
   56: "binancecoin",      // BNB Chain Mainnet
-  80001: "matic-network", // Polygon Mumbai Testnet → use same price as Polygon Mainnet
-  // Add more as needed
+  80001: "matic-network", // Polygon Mumbai Testnet 
+  
 };
 
 export default function usePortfolioBalances(chainId, wallet) {

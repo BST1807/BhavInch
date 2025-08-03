@@ -9,7 +9,7 @@ const WalletComponent = () => {
   const chainId = useChainId() || 1;
   //const { chains, loading: loadingChains } = useSupportedChains();
 
-  // ✅ Use the same hook as Portfolio
+
   const { tokens, loading: loadingBalances } = usePortfolioBalances(chainId, address);
 
   // ✅ Calculate total USD

@@ -12,7 +12,7 @@ const Header = () => {
     { name: 'Portfolio', path: '/portfolio', icon: PieChart },
     { name: 'Wallet', path: '/wallet', icon: Wallet },
     { name: 'Search Token', path: '/search', icon: Search },
-    { name: 'About', path: '/about', icon: Info }, // ✅ Added About page!
+    { name: 'About', path: '/about', icon: Info }, 
   ];
 
   const isActive = (path) => location.pathname === path;
