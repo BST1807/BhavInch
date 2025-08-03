@@ -25,5 +25,5 @@ export const polygonAmoy = defineChain({
 export const config = getDefaultConfig({
   appName: 'BhavInch',
   projectId: '78c6569c263ca3ceb987de960b32f366',
-  chains: [sepolia, polygonMumbai, avalancheFuji, polygonAmoy, mainnet, polygon], // ✅ Added here
+  chains: [ mainnet, polygon], // ✅ Added here
 });

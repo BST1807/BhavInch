@@ -173,7 +173,7 @@ const SwapComponent = () => {
         tokenAmount: toAmount,
       });
 
-      setBridgeStatus(`✅ Stellar bridge done: ${bridgeRes.data.message}`);
+      setBridgeStatus(`✅ Stellar bridge done: Issued ${toAmount} ${toToken.symbol} to Alice (Your account on Stellar Testnet)`);
       toast.success('Swap completed on Stellar!');
     } catch (err) {
       console.error('Stellar bridge error:', err.response?.data || err.message);
@@ -184,17 +184,18 @@ const SwapComponent = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <Toaster position="top-right" />
+    <div className="max-w-4xl mx-auto space-y-6">
+      <Toaster position="top-center" />
 
-      <div className="bg-gray-900 text-gray-100 rounded-2xl shadow-lg border border-gray-800 p-6">
-        <h2 className="text-xl font-semibold mb-6">Swap Tokens</h2>
+      {/* Swap Card */}
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Swap Tokens</h2>
 
         <div className="space-y-4">
           {/* From Section */}
-          <div className="bg-gray-800 rounded-xl p-4">
-            <div className="flex justify-between mb-2 text-sm text-gray-400">
-              <span>From</span>
+          <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+            <div className="flex justify-between mb-3 text-sm text-gray-600">
+              <span className="font-medium">From</span>
               <span>
                 Balance:{' '}
                 {fromToken
@@ -202,9 +203,9 @@ const SwapComponent = () => {
                   : '0.00'}
               </span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between">
               <select
-                className="w-full max-w-[200px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+                className="w-64 px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 shadow-sm focus:ring focus:ring-blue-200 focus:border-blue-500 transition-colors"
                 value={fromToken?.address || ''}
                 onChange={(e) => {
                   const selected = tokenList.find(
@@ -225,16 +226,16 @@ const SwapComponent = () => {
                 type="number"
                 min="0"
                 step="any"
-                className="w-full max-w-[150px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-right text-xl font-medium outline-none text-gray-100"
+                className="w-32 px-3 py-3 bg-white border border-gray-300 rounded-lg text-right text-xl font-medium text-gray-900 shadow-sm focus:ring focus:ring-blue-200 focus:border-blue-500 transition-colors outline-none"
                 placeholder="0.0"
                 value={fromAmount}
                 onChange={(e) => setFromAmount(e.target.value)}
               />
             </div>
 
-            <div className="mt-2 flex items-center text-xs text-gray-400 relative group w-max">
+            <div className="mt-3 flex items-center text-xs text-gray-500 relative group w-max">
               <span className="cursor-pointer">ℹ️</span>
-              <div className="absolute left-5 top-full mt-1 w-64 p-2 text-xs text-gray-300 bg-gray-900 border border-gray-700 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute left-5 top-full mt-1 w-64 p-3 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 It is recommended to use the native coin of the chain to avoid paying gas fees for approval.
               </div>
             </div>
@@ -244,7 +245,7 @@ const SwapComponent = () => {
           <div className="flex justify-center">
             <button
               type="button"
-              className="p-2 bg-gray-800 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors"
+              className="p-3 bg-white border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm"
               onClick={() => {
                 const temp = fromToken;
                 setFromToken(toToken);
@@ -253,19 +254,19 @@ const SwapComponent = () => {
                 setToAmount('');
               }}
             >
-              <ArrowLeftRight className="w-5 h-5 text-gray-300 transform rotate-90" />
+              <ArrowLeftRight className="w-5 h-5 text-gray-600 transform rotate-90" />
             </button>
           </div>
 
           {/* To Section */}
-          <div className="bg-gray-800 rounded-xl p-4">
-            <div className="flex justify-between mb-2 text-sm text-gray-400">
-              <span>To</span>
+          <div className="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+            <div className="flex justify-between mb-3 text-sm text-gray-600">
+              <span className="font-medium">To</span>
               <span>Balance: -</span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center justify-between">
               <select
-                className="w-full max-w-[200px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100"
+                className="w-64 px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 shadow-sm focus:ring focus:ring-blue-200 focus:border-blue-500 transition-colors"
                 value={toToken?.address || ''}
                 onChange={(e) => {
                   const selected = allTokenList.find(
@@ -285,7 +286,7 @@ const SwapComponent = () => {
               <input
                 type="text"
                 readOnly
-                className="w-full max-w-[150px] px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-right text-xl font-medium outline-none text-gray-100"
+                className="w-32 px-3 py-3 bg-gray-100 border border-gray-300 rounded-lg text-right text-xl font-medium text-gray-900 shadow-sm outline-none"
                 placeholder="0.0"
                 value={toAmount}
               />
@@ -294,15 +295,16 @@ const SwapComponent = () => {
         </div>
 
         {!isConnected ? (
-          <p className="w-full mt-6 text-center text-gray-400 font-medium">
-            Connect your wallet to start swapping.
-          </p>
+          <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl text-center">
+            <p className="text-blue-800 font-medium">Connect your wallet to start swapping.</p>
+          </div>
         ) : (
           <>
-            <div className="mt-4 p-3 bg-gray-800 rounded-lg text-sm text-gray-400 space-y-1">
+            {/* Swap Details */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl text-sm text-gray-700 space-y-2">
               <div className="flex justify-between">
-                <span>Rate</span>
-                <span>
+                <span className="font-medium">Rate</span>
+                <span className="text-gray-900">
                   {toAmount && fromAmount
                     ? `1 ${fromToken?.symbol} → ${(Number(toAmount) / Number(fromAmount)).toFixed(
                         6
@@ -311,12 +313,12 @@ const SwapComponent = () => {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span>Estimated Received</span>
-                <span>{toAmount ? `${toAmount} ${toToken?.symbol}` : '-'}</span>
+                <span className="font-medium">Estimated Received</span>
+                <span className="text-gray-900">{toAmount ? `${toAmount} ${toToken?.symbol}` : '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span>Gas Price</span>
-                <span>
+                <span className="font-medium">Gas Price</span>
+                <span className="text-gray-900">
                   {gasPrice
                     ? `${(Number(gasPrice.medium.maxFeePerGas) / 1e9).toFixed(2)} Gwei`
                     : '-'}
@@ -325,8 +327,10 @@ const SwapComponent = () => {
             </div>
 
             <button
-              className={`w-full mt-4 px-4 py-3 rounded-lg text-white ${
-                loadingSwap ? 'bg-blue-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+              className={`w-full mt-6 px-6 py-3 rounded-lg text-white font-medium shadow-sm transition-colors ${
+                loadingSwap 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring focus:ring-blue-200'
               }`}
               onClick={handleSwap}
               disabled={loadingSwap}
@@ -336,55 +340,59 @@ const SwapComponent = () => {
           </>
         )}
 
+        {/* Transaction Details */}
         {swapTx && (
-          <>
-            <div className="mt-6 p-4 bg-gray-800 rounded-lg text-xs text-gray-300 space-y-1">
-              <div><strong>From:</strong> {swapTx.from}</div>
-              <div><strong>To:</strong> {swapTx.to}</div>
-              <div><strong>Value:</strong> {swapTx.value} WEI</div>
-              <div><strong>Gas:</strong> {swapTx.gas} GAS UNITS</div>
-              <div><strong>GasPrice:</strong> {swapTx.gasPrice} WEI</div>
-              <div className="break-all"><strong>Data:</strong> {swapTx.data}</div>
-            </div>
-
-            <button
-              className={`w-full mt-4 px-4 py-3 rounded-lg text-white flex justify-center items-center ${
-                loadingBridge
-                  ? 'bg-green-500 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700'
-              }`}
-              onClick={handleStellarBridge}
-              disabled={loadingBridge || !swapTx || !toAmount}
-            >
-              {loadingBridge && (
-                <svg
-                  className="animate-spin h-5 w-5 text-white mr-2"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  ></path>
-                </svg>
-              )}
-              {loadingBridge ? 'Bridging to Stellar...' : 'Swap on Stellar'}
-            </button>
-          </>
+          <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl text-xs text-gray-700 space-y-2">
+            <h4 className="font-semibold text-purple-800 mb-3">Transaction Details</h4>
+            <div><span className="font-medium">From:</span> {swapTx.from}</div>
+            <div><span className="font-medium">To:</span> {swapTx.to}</div>
+            <div><span className="font-medium">Value:</span> {swapTx.value} WEI</div>
+            <div><span className="font-medium">Gas:</span> {swapTx.gas} GAS UNITS</div>
+            <div><span className="font-medium">GasPrice:</span> {swapTx.gasPrice} WEI</div>
+            <div className="break-all"><span className="font-medium">Data:</span> {swapTx.data}</div>
+          </div>
         )}
 
+        {/* Stellar Bridge Button */}
+        {swapTx && (
+          <button
+            className={`w-full mt-4 px-6 py-3 rounded-lg text-white font-medium shadow-sm transition-colors flex justify-center items-center ${
+              loadingBridge
+                ? 'bg-green-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 focus:ring focus:ring-green-200'
+            }`}
+            onClick={handleStellarBridge}
+            disabled={loadingBridge || !swapTx || !toAmount}
+          >
+            {loadingBridge && (
+              <svg
+                className="animate-spin h-5 w-5 text-white mr-2"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                ></path>
+              </svg>
+            )}
+            {loadingBridge ? 'Bridging to Stellar...' : 'Swap on Stellar'}
+          </button>
+        )}
+
+        {/* Bridge Status */}
         {bridgeStatus && (
-          <div className="mt-4 p-3 bg-green-900 text-green-200 rounded-lg text-sm">
-            {bridgeStatus}
+          <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl">
+            <p className="text-green-800 font-medium">{bridgeStatus}</p>
           </div>
         )}
       </div>
