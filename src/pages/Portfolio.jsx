@@ -11,7 +11,7 @@ const Portfolio = () => {
     address
   );
 
-  const totalUSD = tokens.reduce((acc, t) => acc + (t.usd_value || 0), 0);
+  const totalUSD = tokens.reduce((acc, t) => acc + (t.value_usd || 0), 0);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -45,16 +45,16 @@ const Portfolio = () => {
               <div className="text-sm text-yellow-600 font-medium">
                 Total PnL
               </div>
-              <div className="text-2xl font-bold text-yellow-900">
-                ${totalPnl.toFixed(2)}
+              <div className={`text-2xl font-bold ${totalPnl >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {totalPnl >= 0 ? '+' : '-'}${Math.abs(totalPnl).toFixed(2)}
               </div>
             </div>
             <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
               <div className="text-sm text-purple-600 font-medium">
                 ROI %
               </div>
-              <div className="text-2xl font-bold text-purple-900">
-                {(totalRoi * 100).toFixed(2)}%
+              <div className={`text-2xl font-bold ${totalRoi >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                {totalRoi >= 0 ? '+' : '-'}{Math.abs(totalRoi * 100).toFixed(2)}%
               </div>
             </div>
           </div>
@@ -79,36 +79,38 @@ const Portfolio = () => {
           <div className="space-y-4">
             {tokens.map((token) => (
               <div
-                key={token.token_address}
+                key={token.contract_address}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center space-x-3">
-                  {token.logo_url ? (
-                    <img
-                      src={token.logo_url}
-                      alt={token.symbol}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gray-200 rounded-full" />
-                  )}
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">
+                    {token.symbol}
+                  </div>
                   <div>
                     <div className="font-medium text-gray-900">
-                      {token.symbol}
+                      {token.name}
                     </div>
                     <div className="text-sm text-gray-600">
-                      Address:{" "}
-                      {token.token_address.slice(0, 6)}...
-                      {token.token_address.slice(-4)}
+                      {token.contract_address.slice(0, 6)}...
+                      {token.contract_address.slice(-4)}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-medium text-gray-900">
-                    ${Number(token.usd_value).toFixed(2)}
+                    ${Number(token.value_usd).toFixed(2)}
                   </div>
                   <div className="text-xs text-gray-600">
                     Balance: {Number(token.amount).toFixed(4)}
+                  </div>
+                  <div className={`text-xs ${token.abs_profit_usd >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    PnL: {token.abs_profit_usd >= 0 ? '+' : '-'}${Math.abs(token.abs_profit_usd).toFixed(2)}
+                  </div>
+                  <div className={`text-xs ${token.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ROI: {token.roi >= 0 ? '+' : '-'}{Math.abs(token.roi * 100).toFixed(2)}%
+                  </div>
+                  <div className={`inline-block ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${token.abs_profit_usd >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {token.abs_profit_usd >= 0 ? 'In Profit' : 'At Loss'}
                   </div>
                 </div>
               </div>
@@ -116,6 +118,8 @@ const Portfolio = () => {
           </div>
         )}
       </div>
+
+      
     </div>
   );
 };

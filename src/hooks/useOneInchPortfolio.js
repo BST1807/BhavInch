@@ -13,19 +13,24 @@ export default function useOneInchPortfolio(chainId, address) {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res1 = await fetch(`http://localhost:3001/api/portfolio-balances?chainId=${chainId}&wallet=${address}`);
-        const balances = await res1.json();
-        console.log("✅ Balances:", balances);
+        // ✅ Fetch DETAILS (not balances & pnl separately)
+        const res = await fetch(`http://localhost:3001/api/portfolio-details?chainId=${chainId}&wallet=${address}`);
+        const data = await res.json();
+        console.log("✅ Portfolio DETAILS:", data);
 
-        const res2 = await fetch(`http://localhost:3001/api/portfolio-pnl?chainId=${chainId}&wallet=${address}`);
-        const pnl = await res2.json();
-        console.log("✅ PnL:", pnl);
+        if (!data.result) throw new Error("No portfolio details returned.");
 
-        const chainPnL = pnl.result?.find((r) => Number(r.chain_id) === Number(chainId));
-        setTotalPnl(chainPnL?.abs_profit_usd ?? 0);
-        setTotalRoi(chainPnL?.roi ?? 0);
+        // ✅ Save tokens array
+        setTokens(data.result);
 
-        setTokens(balances.result || []);
+        // ✅ Calculate totals from tokens
+        const totalPnlUsd = data.result.reduce((acc, t) => acc + (t.abs_profit_usd || 0), 0);
+        const totalRoiAvg = data.result.length
+          ? data.result.reduce((acc, t) => acc + (t.roi || 0), 0) / data.result.length
+          : 0;
+
+        setTotalPnl(totalPnlUsd);
+        setTotalRoi(totalRoiAvg);
 
       } catch (err) {
         console.error(err);

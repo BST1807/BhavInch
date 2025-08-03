@@ -330,6 +330,39 @@ app.get('/api/portfolio-balances', async (req, res) => {
   }
 });
 
+// ✅ 1inch Portfolio - DETAILS (balances + PnL per token)
+app.get('/api/portfolio-details', async (req, res) => {
+  const { chainId, wallet } = req.query;
+
+  if (!chainId || !wallet) {
+    return res.status(400).json({ error: 'chainId and wallet are required' });
+  }
+
+  console.log(`[PORTFOLIO DETAILS] Chain: ${chainId} | Wallet: ${wallet}`);
+
+  try {
+    const response = await axios.get(
+      `https://api.1inch.dev/portfolio/portfolio/v4/overview/erc20/details?addresses=${wallet}&chain_id=${chainId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.ONEINCH_API_KEY}`,
+        },
+      }
+    );
+
+    console.log('Portfolio DETAILS API response:', response.data);
+    res.json(response.data);
+
+  } catch (err) {
+    console.error('Portfolio DETAILS API error:', err.response?.data || err.message);
+    res.status(500).json({
+      error: 'Failed to fetch portfolio details',
+      details: err.response?.data || err.message,
+    });
+  }
+});
+
+
 
 // ✅ SWAP endpoint — returns swap tx data, does NOT broadcast!
 app.get('/api/swap', async (req, res) => {
@@ -386,6 +419,33 @@ app.post('/api/stellar-bridge', async (req, res) => {
   } catch (err) {
     console.error('Stellar Bridge error:', err.message);
     res.status(500).json({ error: 'Stellar Bridge failed', details: err.message });
+  }
+});
+
+
+app.get('/api/token-chart', async (req, res) => {
+  const { chainId, tokenAddress, resolution = '1h' } = req.query;
+
+  if (!chainId || !tokenAddress) {
+    return res.status(400).json({ error: 'chainId and tokenAddress are required' });
+  }
+
+  const BASE_URL = `https://api.1inch.dev/charts/v1.0/${chainId}/token/${tokenAddress}/candles`;
+
+  try {
+    const response = await axios.get(BASE_URL, {
+      headers: { Authorization: `Bearer ${process.env.ONEINCH_API_KEY}` },
+      params: {
+        resolution, // '1h', '1d', etc.
+        limit: 100, // Number of candles to fetch
+      },
+    });
+
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('Error fetching chart data:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
   }
 });
 
